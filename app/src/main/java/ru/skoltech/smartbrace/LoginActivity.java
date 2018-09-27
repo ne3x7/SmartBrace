@@ -340,6 +340,7 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor> {
             if (success) {
                 finish();
                 editor.putBoolean(getString(R.string.preference_logged_key), true);
+                editor.commit();
                 Intent intent = new Intent(mActivity, MainActivity.class);
                 mActivity.startActivity(intent);
             } else {

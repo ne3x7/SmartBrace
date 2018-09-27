@@ -4,49 +4,227 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
+import android.media.ExifInterface;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
+import android.os.Environment;
+import android.provider.MediaStore;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import java.io.File;
 
 public class MainActivity extends AppCompatActivity {
 
-    private Button update;
-    private ProgressBar update_progress;
-    private UpdateTask mTask = null;
+    private ImageButton photo_picker;
+    private ProgressBar pbar;
+
+    protected static final int CAMERA_REQUEST = 0;
+    protected static final int GALLERY_PICTURE = 1;
+    private Intent pictureActionIntent = null;
+    Bitmap bitmap;
+
+    String selectedImagePath;
+
+    private SharedPreferences pref;
+    private SharedPreferences.Editor editor;
+    private Activity mActivity = this;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
 
-        update = (Button) findViewById(R.id.update_button);
-        update_progress = (ProgressBar) findViewById(R.id.update_progress);
+        pbar = findViewById(R.id.update_progress);
 
-        update.setOnClickListener(new View.OnClickListener() {
+        photo_picker = (ImageButton) findViewById(R.id.take_photo_btn);
+        photo_picker.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                attemptUpdate();
+                startDialog();
             }
         });
     }
 
-    private void attemptUpdate() {
-        if (mTask != null) {
-            return;
-        }
+    private void startDialog() {
+        AlertDialog.Builder myAlertDialog = new AlertDialog.Builder(mActivity);
+        myAlertDialog.setTitle("Upload Pictures Option");
+        myAlertDialog.setMessage("How do you want to set your picture?");
 
-        showProgress(true);
-        mTask = new UpdateTask(this);
-        mTask.execute((Void) null);
+        myAlertDialog.setPositiveButton("Gallery",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface arg0, int arg1) {
+                        Intent pictureActionIntent = null;
+
+                        pictureActionIntent = new Intent(
+                                Intent.ACTION_PICK,
+                                android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                        startActivityForResult(
+                                pictureActionIntent,
+                                GALLERY_PICTURE);
+
+                    }
+                });
+
+        myAlertDialog.setNegativeButton("Camera",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface arg0, int arg1) {
+
+                        Intent intent = new Intent(
+                                MediaStore.ACTION_IMAGE_CAPTURE);
+                        File f = new File(android.os.Environment
+                                .getExternalStorageDirectory(), "temp.jpg");
+                        intent.putExtra(MediaStore.EXTRA_OUTPUT,
+                                Uri.fromFile(f));
+
+                        startActivityForResult(intent,
+                                CAMERA_REQUEST);
+
+                    }
+                });
+        myAlertDialog.show();
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+
+        super.onActivityResult(requestCode, resultCode, data);
+
+        bitmap = null;
+        selectedImagePath = null;
+
+        if (resultCode == RESULT_OK && requestCode == CAMERA_REQUEST) {
+
+            File f = new File(Environment.getExternalStorageDirectory()
+                    .toString());
+            for (File temp : f.listFiles()) {
+                if (temp.getName().equals("temp.jpg")) {
+                    f = temp;
+                    break;
+                }
+            }
+
+            if (!f.exists()) {
+
+                Toast.makeText(getBaseContext(),
+
+                        "Error while capturing image", Toast.LENGTH_LONG)
+
+                        .show();
+
+                return;
+
+            }
+
+            try {
+
+//                bitmap = BitmapFactory.decodeFile(f.getAbsolutePath());
+//
+//                bitmap = Bitmap.createScaledBitmap(bitmap, 400, 400, true);
+//
+//                int rotate = 0;
+//                try {
+//                    ExifInterface exif = new ExifInterface(f.getAbsolutePath());
+//                    int orientation = exif.getAttributeInt(
+//                            ExifInterface.TAG_ORIENTATION,
+//                            ExifInterface.ORIENTATION_NORMAL);
+//
+//                    switch (orientation) {
+//                        case ExifInterface.ORIENTATION_ROTATE_270:
+//                            rotate = 270;
+//                            break;
+//                        case ExifInterface.ORIENTATION_ROTATE_180:
+//                            rotate = 180;
+//                            break;
+//                        case ExifInterface.ORIENTATION_ROTATE_90:
+//                            rotate = 90;
+//                            break;
+//                    }
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                }
+//                Matrix matrix = new Matrix();
+//                matrix.postRotate(rotate);
+//                bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(),
+//                        bitmap.getHeight(), matrix, true);
+
+                // process image
+
+                showProgress(true);
+
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    // do nothing
+                }
+
+                showProgress(false);
+
+                Intent intent = new Intent(mActivity, ProgressActivity.class);
+                startActivity(intent);
+            } catch (Exception e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
+        } else if (resultCode == RESULT_OK && requestCode == GALLERY_PICTURE) {
+            if (data != null) {
+
+//                Uri selectedImage = data.getData();
+//                String[] filePath = { MediaStore.Images.Media.DATA };
+//                Cursor c = getContentResolver().query(selectedImage, filePath,
+//                        null, null, null);
+//                c.moveToFirst();
+//                int columnIndex = c.getColumnIndex(filePath[0]);
+//                selectedImagePath = c.getString(columnIndex);
+//                c.close();
+//
+//                bitmap = BitmapFactory.decodeFile(selectedImagePath); // load
+//                // preview image
+//                bitmap = Bitmap.createScaledBitmap(bitmap, 400, 400, false);
+
+                // process image
+
+                showProgress(true);
+
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    // do nothing
+                }
+
+                showProgress(false);
+
+                Intent intent = new Intent(mActivity, ProgressActivity.class);
+                startActivity(intent);
+            } else {
+                Toast.makeText(getApplicationContext(), "Cancelled",
+                        Toast.LENGTH_SHORT).show();
+            }
+        }
+
+    }
+
+    /**
+     * Shows the progress UI and hides the login form.
+     */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR2)
     private void showProgress(final boolean show) {
         // On Honeycomb MR2 we have the ViewPropertyAnimator APIs, which allow
@@ -55,64 +233,28 @@ public class MainActivity extends AppCompatActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR2) {
             int shortAnimTime = getResources().getInteger(android.R.integer.config_shortAnimTime);
 
-            update.setVisibility(show ? View.GONE : View.VISIBLE);
-            update.animate().setDuration(shortAnimTime).alpha(
+            photo_picker.setVisibility(show ? View.GONE : View.VISIBLE);
+            photo_picker.animate().setDuration(shortAnimTime).alpha(
                     show ? 0 : 1).setListener(new AnimatorListenerAdapter() {
                 @Override
                 public void onAnimationEnd(Animator animation) {
-                    update.setVisibility(show ? View.GONE : View.VISIBLE);
+                    photo_picker.setVisibility(show ? View.GONE : View.VISIBLE);
                 }
             });
 
-            update_progress.setVisibility(show ? View.VISIBLE : View.GONE);
-            update_progress.animate().setDuration(shortAnimTime).alpha(
+            pbar.setVisibility(show ? View.VISIBLE : View.GONE);
+            pbar.animate().setDuration(shortAnimTime).alpha(
                     show ? 1 : 0).setListener(new AnimatorListenerAdapter() {
                 @Override
                 public void onAnimationEnd(Animator animation) {
-                    update_progress.setVisibility(show ? View.VISIBLE : View.GONE);
+                    pbar.setVisibility(show ? View.VISIBLE : View.GONE);
                 }
             });
         } else {
             // The ViewPropertyAnimator APIs are not available, so simply show
             // and hide the relevant UI components.
-            update_progress.setVisibility(show ? View.VISIBLE : View.GONE);
-            update.setVisibility(show ? View.GONE : View.VISIBLE);
-        }
-    }
-
-    public class UpdateTask extends AsyncTask<Void, Void, Boolean> {
-
-        private Activity mActivity;
-
-        UpdateTask(Activity a) {
-            mActivity = a;
-        }
-
-        @Override
-        protected Boolean doInBackground(Void... voids) {
-            try {
-                // Simulate network access.
-                Thread.sleep(2000);
-            } catch (InterruptedException e) {
-                return false;
-            }
-
-            ImageView img = (ImageView) mActivity.findViewById(R.id.teeth_image);
-            img.setImageDrawable(getDrawable(R.drawable.teeth_color));
-
-            return true;
-        }
-
-        @Override
-        protected void onPostExecute(final Boolean success) {
-            mTask = null;
-            showProgress(false);
-        }
-
-        @Override
-        protected void onCancelled() {
-            mTask = null;
-            showProgress(false);
+            pbar.setVisibility(show ? View.VISIBLE : View.GONE);
+            photo_picker.setVisibility(show ? View.GONE : View.VISIBLE);
         }
     }
 }

@@ -23,4 +23,7 @@
     <string name="button_update">Update</string>
     <string name="desc_teeth_gray">Your teeth (no data)</string>
     <string name="pct">75%</string>
+    <string name="desc_teeth_progress">Your per tooth progress (no data)</string>
+    <string name="teeth_progress">+11% progress since yesterday!</string>
+    <string name="day_counter">Day 121</string>
 </resources>
